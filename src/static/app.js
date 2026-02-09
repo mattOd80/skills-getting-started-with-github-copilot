@@ -20,35 +20,75 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
-        activityCard.innerHTML = `
-          <h4>${name}</h4>
-          <p>${details.description}</p>
-          <p><strong>Schedule:</strong> ${details.schedule}</p>
-          <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
-          <div class="participants-section">
-            <p><strong>Participants:</strong></p>
-            ${details.participants.length > 0 
-              ? `<ul class="participants-list">${details.participants.map(email => 
-                  `<li>
-                    <span class="participant-email">${email}</span>
-                    <button class="delete-icon" data-activity="${name}" data-email="${email}" aria-label="Remove ${email}">
-                      ✕
-                    </button>
-                  </li>`
-                ).join('')}</ul>`
-              : '<p class="no-participants">No participants yet</p>'}
-          </div>
-        `;
+        // Create elements using DOM manipulation to prevent XSS
+        const nameHeading = document.createElement("h4");
+        nameHeading.textContent = name;
+        activityCard.appendChild(nameHeading);
 
-        // Add event listeners to delete icons
-        activityCard.querySelectorAll('.delete-icon').forEach(button => {
-          button.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const activity = button.getAttribute('data-activity');
-            const email = button.getAttribute('data-email');
-            await unregisterParticipant(activity, email);
+        const descriptionPara = document.createElement("p");
+        descriptionPara.textContent = details.description;
+        activityCard.appendChild(descriptionPara);
+
+        const schedulePara = document.createElement("p");
+        const scheduleStrong = document.createElement("strong");
+        scheduleStrong.textContent = "Schedule:";
+        schedulePara.appendChild(scheduleStrong);
+        schedulePara.appendChild(document.createTextNode(" " + details.schedule));
+        activityCard.appendChild(schedulePara);
+
+        const availabilityPara = document.createElement("p");
+        const availabilityStrong = document.createElement("strong");
+        availabilityStrong.textContent = "Availability:";
+        availabilityPara.appendChild(availabilityStrong);
+        availabilityPara.appendChild(document.createTextNode(" " + spotsLeft + " spots left"));
+        activityCard.appendChild(availabilityPara);
+
+        // Create participants section
+        const participantsSection = document.createElement("div");
+        participantsSection.className = "participants-section";
+
+        const participantsLabel = document.createElement("p");
+        const participantsStrong = document.createElement("strong");
+        participantsStrong.textContent = "Participants:";
+        participantsLabel.appendChild(participantsStrong);
+        participantsSection.appendChild(participantsLabel);
+
+        if (details.participants.length > 0) {
+          const participantsList = document.createElement("ul");
+          participantsList.className = "participants-list";
+
+          details.participants.forEach(email => {
+            const listItem = document.createElement("li");
+
+            const emailSpan = document.createElement("span");
+            emailSpan.className = "participant-email";
+            emailSpan.textContent = email;
+            listItem.appendChild(emailSpan);
+
+            const deleteButton = document.createElement("button");
+            deleteButton.className = "delete-icon";
+            deleteButton.setAttribute("data-activity", name);
+            deleteButton.setAttribute("data-email", email);
+            deleteButton.setAttribute("aria-label", "Remove " + email);
+            deleteButton.textContent = "✕";
+            deleteButton.addEventListener('click', async (e) => {
+              e.preventDefault();
+              await unregisterParticipant(name, email);
+            });
+            listItem.appendChild(deleteButton);
+
+            participantsList.appendChild(listItem);
           });
-        });
+
+          participantsSection.appendChild(participantsList);
+        } else {
+          const noParticipantsPara = document.createElement("p");
+          noParticipantsPara.className = "no-participants";
+          noParticipantsPara.textContent = "No participants yet";
+          participantsSection.appendChild(noParticipantsPara);
+        }
+
+        activityCard.appendChild(participantsSection);
 
         activitiesList.appendChild(activityCard);
 
